@@ -1,1 +1,612 @@
-<html lang="es"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Undix</title> </head> <body> <h1>¡Hola, mundo!</h1> <p>Esta es mi primera página web.</p> </body> </html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Intermodular - IES Serra Perenxisa</title>
+
+    <!-- Librerías Externas (CDNs) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Tipografías -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* Ocultar contenido hasta que Vue se cargue */
+        [v-cloak] { display: none; }
+        
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --sidebar-width: 300px;
+            --header-height: 72px;
+            --bg-main: #ffffff;
+            --bg-subtle: #f8fafc;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --error: #ef4444;
+        }
+
+        * { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Tipografía Pro */
+        h1, h2, h3, h4, h5, h6 { font-weight: 800 !important; color: #0f172a; letter-spacing: -0.02em; }
+        h1 { font-size: 3rem; line-height: 1.1; margin-bottom: 2rem; }
+        h2 { font-size: 2rem; margin-top: 5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 1rem; color: var(--primary); }
+        h3 { font-size: 1.5rem; margin-top: 3rem; margin-bottom: 1.25rem; color: #1e293b; display: flex; align-items: center; gap: 0.75rem; }
+        h3::before { content: ''; width: 4px; height: 1.5rem; background: var(--primary); border-radius: 4px; display: inline-block; }
+        
+        p { margin-bottom: 1.5rem; color: #475569; text-align: justify; }
+
+        /* Callouts Premium */
+        .callout {
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin: 2rem 0;
+            border: 1px solid transparent;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .callout-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+        .callout-info { background-color: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+        .callout-warning { background-color: #fffbeb; border-color: #fef3c7; color: #92400e; }
+        .callout-success { background-color: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .callout-error { background-color: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-subtle);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            z-index: 40;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            left: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+        
+        .sidebar-collapsed {
+            transform: translateX(-100%);
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            margin: 0.25rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .nav-item:hover { background-color: #f1f5f9; color: var(--text-main); transform: translateX(4px); }
+        .nav-item.active { background-color: white; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+        /* Main Container */
+        .main-container {
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 100vh;
+        }
+
+        .main-container-expanded {
+            margin-left: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar:not(.sidebar-collapsed) {
+                transform: translateX(0);
+                box-shadow: 20px 0 50px rgba(0,0,0,0.1);
+            }
+            .main-container {
+                margin-left: 0 !important;
+            }
+            .sidebar-collapsed {
+                transform: translateX(-100%);
+            }
+        }
+
+        header {
+            height: var(--header-height);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-secondary { background: white; color: var(--text-main); border-color: var(--border); }
+        .btn-secondary:hover { background: var(--bg-subtle); }
+
+        /* Content Area */
+        .content-area {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        /* Print Improvements */
+        @media print {
+            @page {
+                margin: 2cm;
+                size: a4;
+            }
+            
+            .sidebar, header, .btn, .no-print, .toggle-btn { display: none !important; }
+            
+            .main-container { 
+                margin-left: 0 !important; 
+                padding: 0 !important;
+            }
+            
+            .content-area { 
+                max-width: 100% !important; 
+                width: 100% !important;
+                padding: 0 !important; 
+                margin: 0 !important; 
+            }
+            
+            body { 
+                background: white !important; 
+                font-size: 11pt;
+            }
+
+            /* Forzar colores en impresión */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            h1 { font-size: 28pt; margin-bottom: 3rem; page-break-after: avoid; }
+            h2 { 
+                font-size: 20pt; 
+                page-break-before: always; 
+                margin-top: 0; 
+                padding-top: 1cm; 
+                border-bottom: 2px solid #eee !important;
+                page-break-after: avoid;
+            }
+            h3 { font-size: 16pt; margin-top: 2rem; page-break-after: avoid; }
+            
+            p, li { orphans: 3; widows: 3; }
+            
+            .callout { 
+                break-inside: avoid; 
+                border: 1px solid #e2e8f0 !important;
+                background-color: #f8fafc !important;
+                margin: 1.5rem 0;
+            }
+            
+            img { 
+                max-width: 100% !important; 
+                height: auto !important;
+                border-radius: 1rem !important;
+                page-break-inside: avoid;
+            }
+
+            table { 
+                width: 100% !important;
+                break-inside: auto; 
+                border-collapse: collapse !important;
+            }
+            tr { break-inside: avoid; break-after: auto; }
+            thead { display: table-header-group; }
+            
+            /* Portada específica */
+            #inicio {
+                min-height: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                page-break-after: always;
+            }
+        }
+
+        /* Logo Pro */
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 6px;
+        }
+
+        /* Toggle Sidebar Button */
+        .toggle-btn {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover { background: #f1f5f9; color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <!-- Sidebar -->
+        <aside class="sidebar no-print" :class="{ 'sidebar-collapsed': !sidebarOpen }">
+            <div class="h-20 flex items-center px-8 border-b border-slate-200 bg-white sticky top-0 z-10">
+                <div class="flex items-center gap-4">
+                    <div class="logo-box">
+                        <img :src="logoUrl" alt="Logo" class="max-h-full">
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-sm leading-none">IES Serra</div>
+                        <div class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-bold">{{ cycle }}</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="py-8">
+                <a href="#inicio" class="nav-item" :class="{ active: activeSection === 'inicio' }" @click="activeSection = 'inicio'">
+                    <span class="text-lg">🏠</span> <span class="ml-3">Portada</span>
+                </a>
+                <a href="#resumen" class="nav-item" :class="{ active: activeSection === 'resumen' }" @click="activeSection = 'resumen'">
+                    <span class="text-lg">📄</span> <span class="ml-3">Resumen</span>
+                </a>
+                <div class="my-6 border-t border-slate-100 mx-6"></div>
+                <div v-for="section in sections" :key="section.id">
+                    <a :href="'#' + section.id" class="nav-item" :class="{ active: activeSection === section.id }" @click="activeSection = section.id">
+                        <span class="text-lg">{{ getSectionIcon(section.id) }}</span> 
+                        <span class="ml-3">{{ section.title }}</span>
+                    </a>
+                </div>
+                <div class="my-6 border-t border-slate-100 mx-6"></div>
+                <a href="#bibliografia" class="nav-item" :class="{ active: activeSection === 'bibliografia' }" @click="activeSection = 'bibliografia'">
+                    <span class="text-lg">📚</span> <span class="ml-3">Bibliografía</span>
+                </a>
+                <a href="#anexos" class="nav-item" :class="{ active: activeSection === 'anexos' }" @click="activeSection = 'anexos'">
+                    <span class="text-lg">📎</span> <span class="ml-3">Anexos</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-container" :class="{ 'main-container-expanded': !sidebarOpen }">
+            <header class="no-print">
+                <div class="flex items-center gap-4">
+                    <button @click="sidebarOpen = !sidebarOpen" class="toggle-btn" title="Contraer/Expandir menú">
+                        <svg v-if="sidebarOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+                        <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                    </button>
+                    <h1 class="text-lg font-bold m-0 border-none truncate max-w-md" :title="projectTitle">{{ projectTitle || 'Proyecto Intermodular' }}</h1>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="printProject" class="btn btn-secondary text-slate-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Imprimir
+                    </button>
+                    <button @click="exportWord" class="btn btn-primary">
+                        Word
+                    </button>
+                </div>
+            </header>
+
+            <main class="content-area" id="export-content">
+                <!-- Portada Premium -->
+                <section id="inicio" class="text-center py-20 mb-32 min-h-[85vh] flex flex-col justify-center">
+                    <div class="mb-12">
+                        <img :src="logoUrl" alt="Logo Centro" class="h-24 mx-auto drop-shadow-sm">
+                    </div>
+                    <h1 class="text-6xl text-slate-900 leading-tight mb-8">{{ projectTitle }}</h1>
+                    <p class="text-2xl text-slate-400 font-medium max-w-3xl mx-auto italic mb-16">
+                        Proyecto Intermodular Final de Ciclo Formativo de {{ cycleLevel }} en {{ cycleName }}
+                    </p>
+                    
+                    <div v-if="projectImage" class="relative max-w-5xl mx-auto mb-20 group">
+                        <div class="absolute -inset-4 bg-gradient-to-tr from-blue-100 to-indigo-100 rounded-[2rem] blur-2xl opacity-50"></div>
+                        <img :src="projectImage" alt="Hero" class="relative rounded-[1.5rem] shadow-2xl w-full border border-slate-100">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left mt-12">
+                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Autoría</span>
+                            <span class="text-lg font-bold text-slate-800">{{ studentName }}</span>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Tutorización</span>
+                            <span class="text-lg font-bold text-slate-800">{{ tutorName }}</span>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Ciclo / Curso</span>
+                            <span class="text-lg font-bold text-slate-800">{{ cycle }} - {{ courseYear }}</span>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Fecha</span>
+                            <span class="text-lg font-bold text-slate-800">{{ currentDate }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Secciones -->
+                <section id="resumen" class="mb-32">
+                    <h2>Resumen / Abstract</h2>
+                    <div v-html="sectionsContent.resumen"></div>
+                </section>
+
+                <div v-for="section in sections" :key="section.id">
+                    <section :id="section.id" class="mb-32 scroll-mt-24">
+                        <h2>{{ section.title }}</h2>
+                        <div v-html="getSectionContent(section.id)"></div>
+                    </section>
+                </div>
+
+                <section id="bibliografia" class="mb-32">
+                    <h2>Bibliografía</h2>
+                    <div v-html="sectionsContent.bibliografia"></div>
+                </section>
+
+                <section id="anexos" class="mb-32">
+                    <h2>Anexos Técnicos</h2>
+                    <div v-html="sectionsContent.anexos"></div>
+                </section>
+            </main>
+
+            <footer class="bg-slate-50 border-t border-slate-200 py-16 no-print">
+                <div class="max-w-5xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div class="flex items-center gap-4">
+                        <img :src="logoUrl" alt="IES" class="h-10 grayscale opacity-50">
+                        <div class="text-sm text-slate-400 font-medium">
+                            IES Serra Perenxisa <br>
+                            &copy; {{ new Date().getFullYear() }} - Todos los derechos reservados.
+                        </div>
+                    </div>
+                    <div></div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- CARGA DE DATOS OFFLINE (window.metadata y window.sectionsContent) -->
+    <script src="./data/metadata.js"></script>
+    <script src="./data/resumen.js"></script>
+    <script src="./data/introduccion.js"></script>
+    <script src="./data/estado-arte.js"></script>
+    <script src="./data/viabilidad.js"></script>
+    <script src="./data/requisitos.js"></script>
+    <script src="./data/diseno.js"></script>
+    <script src="./data/implementacion.js"></script>
+    <script src="./data/administracion.js"></script>
+    <script src="./data/herramientas.js"></script>
+    <script src="./data/conclusiones.js"></script>
+    <script src="./data/bibliografia.js"></script>
+    <script src="./data/anexos.js"></script>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    activeSection: 'inicio',
+                    sidebarOpen: true,
+                    projectTitle: window.metadata?.projectTitle || 'Proyecto Intermodular',
+                    studentName: window.metadata?.studentName || '',
+                    tutorName: window.metadata?.tutorName || '',
+                    cycle: window.metadata?.cycle || '',
+                    cycleName: window.metadata?.cycleName || '',
+                    cycleLevel: window.metadata?.cycleLevel || '',
+                    courseYear: window.metadata?.courseYear || '',
+                    projectImage: window.metadata?.projectImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80',
+                    currentDate: new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }),
+                    logoUrl: './logo.png',
+                    sections: [
+                        { id: 'introduccion', title: '1. Introducción' },
+                        { id: 'estado-arte', title: '2. Estado del Arte' },
+                        { id: 'viabilidad', title: '3. Estudio de Viabilidad' },
+                        { id: 'requisitos', title: '4. Análisis de Requisitos' },
+                        { id: 'diseno', title: '5. Diseño' },
+                        { id: 'implementacion', title: '6. Implementación' },
+                        { id: 'administracion', title: '7. Administración' },
+                        { id: 'herramientas', title: '8. Herramientas de Apoyo' },
+                        { id: 'conclusiones', title: '9. Conclusiones' }
+                    ],
+                    sectionsContent: window.sectionsContent || {}
+                }
+            },
+            methods: {
+                getSectionIcon(id) {
+                    const icons = {
+                        'introduccion': '👋', 'estado-arte': '🌐', 'viabilidad': '📈',
+                        'requisitos': '📋', 'diseno': '🎨', 'implementacion': '💻',
+                        'administracion': '⚙️', 'herramientas': '🛠️', 'conclusiones': '🏁'
+                    };
+                    return icons[id] || '📄';
+                },
+                getSectionContent(id) {
+                    return this.sectionsContent[id] || '<div class="callout callout-warning">Contenido no encontrado en data/' + id + '.js</div>';
+                },
+                printProject() {
+                    window.print();
+                },
+                                async exportWord() {
+
+                    const element = document.getElementById("export-content");
+                    const clone = element.cloneNode(true);
+
+                    const originalImgs = element.querySelectorAll("img");
+                    const clonedImgs = clone.querySelectorAll("img");
+
+                    // Esperar a que todas las imágenes estén cargadas
+                    await Promise.all(
+                        [...originalImgs].map(img =>
+                            img.complete
+                                ? Promise.resolve()
+                                : new Promise(resolve => { img.onload = resolve; })
+                        )
+                    );
+
+                    for (let i = 0; i < originalImgs.length; i++) {
+
+                        const base64 = this.imageToBase64(originalImgs[i]);
+
+                        clonedImgs[i].src = base64;
+
+                        // Copiar tamaño visual real
+                        const rect = originalImgs[i].getBoundingClientRect();
+
+                        clonedImgs[i].setAttribute("width", rect.width);
+                        clonedImgs[i].setAttribute("height", rect.height);
+
+                        clonedImgs[i].style.display = "block";
+                    }
+
+                    const styles = `
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            padding: 20px;
+        }
+
+        h1,h2,h3 {
+            color:#2563eb;
+        }
+
+        img{
+            max-width:100%;
+        }
+
+        .callout{
+            padding:15px;
+            border:1px solid #e2e8f0;
+            border-radius:10px;
+            background:#f8fafc;
+            margin:20px 0;
+        }
+    </style>
+    `;
+
+                    const header = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+        <meta charset="utf-8">
+        ${styles}
+    </head>
+    <body>
+    `;
+
+                    const footer = `</body></html>`;
+
+                    const sourceHTML = header + clone.innerHTML + footer;
+
+                    const blob = new Blob(['\ufeff', sourceHTML], {
+                        type: 'application/msword'
+                    });
+
+                    const url = URL.createObjectURL(blob);
+
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = this.projectTitle.replace(/ /g, "_") + ".doc";
+
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+
+                imageToBase64(img) {
+
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+
+                    ctx.drawImage(img, 0, 0);
+
+                    return canvas.toDataURL("image/png");
+                }
+            },
+            mounted() {
+                // Colapsar sidebar en móviles por defecto
+                if (window.innerWidth < 1024) {
+                    this.sidebarOpen = false;
+                }
+
+                // Actualizar título de la página una vez cargado
+                if (window.metadata?.projectTitle) {
+                    this.projectTitle = window.metadata.projectTitle;
+                    document.title = window.metadata.projectTitle + ' - IES Serra Perenxisa';
+                }
+                
+                // Inicializar observador de secciones
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) this.activeSection = entry.target.id;
+                    });
+                }, { rootMargin: '-20% 0px -70% 0px' });
+
+                document.querySelectorAll('section[id], #inicio').forEach((section) => observer.observe(section));
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
